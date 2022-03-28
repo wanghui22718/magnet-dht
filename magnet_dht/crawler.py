@@ -14,27 +14,28 @@ from .utils import get_logger, get_nodes_info, get_rand_id, get_neighbor
 from .database import RedisClient
 
 # 服务器 tracker
+# BOOTSTRAP_NODES = [
+#     "udp://tracker.open-internet.nl:6969/announce",
+#     "udp://tracker.coppersurfer.tk:6969/announce",
+#     "udp://exodus.desync.com:6969/announce",
+#     "udp://tracker.opentrackr.org:1337/announce",
+#     "udp://tracker.internetwarriors.net:1337/announce",
+#     "udp://9.rarbg.to:2710/announce",
+#     "udp://public.popcorn-tracker.org:6969/announce",
+#     "udp://tracker.vanitycore.co:6969/announce",
+#     "https://1.track.ga:443/announce",
+#     "udp://tracker.tiny-vps.com:6969/announce",
+#     "udp://tracker.cypherpunks.ru:6969/announce",
+#     "udp://thetracker.org:80/announce",
+#     "udp://tracker.torrent.eu.org:451/announce",
+#     "udp://retracker.lanta-net.ru:2710/announce",
+#     "udp://bt.xxx-tracker.com:2710/announce",
+#     "http://retracker.telecom.by:80/announce",
+#     "http://retracker.mgts.by:80/announce",
+#     "http://0d.kebhana.mx:443/announce",
+#     "udp://torr.ws:2710/announce",
+#     "udp://open.stealth.si:80/announce",]
 BOOTSTRAP_NODES = [
-    "udp://tracker.open-internet.nl:6969/announce",
-    "udp://tracker.coppersurfer.tk:6969/announce",
-    "udp://exodus.desync.com:6969/announce",
-    "udp://tracker.opentrackr.org:1337/announce",
-    "udp://tracker.internetwarriors.net:1337/announce",
-    "udp://9.rarbg.to:2710/announce",
-    "udp://public.popcorn-tracker.org:6969/announce",
-    "udp://tracker.vanitycore.co:6969/announce",
-    "https://1.track.ga:443/announce",
-    "udp://tracker.tiny-vps.com:6969/announce",
-    "udp://tracker.cypherpunks.ru:6969/announce",
-    "udp://thetracker.org:80/announce",
-    "udp://tracker.torrent.eu.org:451/announce",
-    "udp://retracker.lanta-net.ru:2710/announce",
-    "udp://bt.xxx-tracker.com:2710/announce",
-    "http://retracker.telecom.by:80/announce",
-    "http://retracker.mgts.by:80/announce",
-    "http://0d.kebhana.mx:443/announce",
-    "udp://torr.ws:2710/announce",
-    "udp://open.stealth.si:80/announce",
     ("router.bittorrent.com", 6881),
     ("dht.transmissionbt.com", 6881),
     ("router.utorrent.com", 6881),
@@ -57,7 +58,8 @@ PER_NID_LEN = 20
 # 执行 bs 定时器间隔（秒）
 PER_SEC_BS_TIMER = 8
 # 是否使用全部进程
-MAX_PROCESSES = cpu_count() // 2 or cpu_count()
+# MAX_PROCESSES = cpu_count() // 2 or cpu_count()
+MAX_PROCESSES = 1
 
 
 class HNode:
@@ -175,9 +177,9 @@ class DHTServer:
         # 使用 codecs 解码 info_hash
         hex_info_hash = codecs.getencoder("hex")(info_hash)[0].decode()
         magnet = MAGNET_PER.format(hex_info_hash)
-        self.rc.add_magnet(magnet)
+        self.rc.add_magnet(hex_info_hash)
         # self.logger.info("pid " + str(self.process_id) + " - " + magnet)
-        self.logger.info("pid_{0} - {1}".format(self.process_id, magnet))
+        # self.logger.info("pid_{0} - {1}".format(self.process_id, magnet))
 
     def on_message(self, msg, address):
         """
@@ -206,6 +208,7 @@ class DHTServer:
                 # "q" = "get_peers"。get_peers 请求包含 2 个参数。第一个参数是 id，
                 # 包含了请求节点的 ID。第二个参数是 info_hash，它代表 torrent 文件的 info_hash
                 if msg[b"q"] == b"get_peers":
+                    # pass
                     self.on_get_peers_request(msg, address)
                 # announce_peer 表明请求的节点正在某个端口下载 torrent
                 # 文件。announce_peer 包含 4 个参数。第一个参数是 id，包含了请求节点的 ID；
@@ -283,7 +286,8 @@ class DHTServer:
                 self.on_message(msg, address)
                 time.sleep(SLEEP_TIME)
             except Exception as e:
-                self.logger.warning(e)
+                pass
+                # self.logger.warning(e)
 
 
 def _start_thread(offset):

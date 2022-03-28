@@ -1,38 +1,53 @@
 #!/usr/bin/env python
 # coding=utf-8
-
-import redis
-
-# redis key
-REDIS_KEY = "magnets"
-# redis 地址
-REDIS_HOST = "localhost"
-# redis 端口
-REDIS_PORT = 6379
-# redis 密码
-REDIS_PASSWORD = None
-# redis 连接池最大连接量
-REDIS_MAX_CONNECTION = 20
-
+from ctypes import sizeof
+import random
+import time
 
 class RedisClient:
-    def __init__(self, host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD):
-        conn_pool = redis.ConnectionPool(
-            host=host,
-            port=port,
-            password=password,
-            max_connections=REDIS_MAX_CONNECTION,
-        )
-        self.redis = redis.Redis(connection_pool=conn_pool)
+    def __init__(self, ):
+        self.all = 0
+        self.ttimes = {}
 
     def add_magnet(self, magnet):
-        """
-        新增磁力链接
-        """
-        self.redis.sadd(REDIS_KEY, magnet)
+        # print(magnet)
+        
+        if magnet in self.ttimes:
+            self.ttimes[magnet] += 1
+        else:
+            self.ttimes[magnet] = 1
+
+        self.all += 1
+        if self.all %1000 ==0:
+            with open('/root/workspace/magnet-dht/dhtlist.txt', 'a') as f:
+                f.write(f'got {self.all//1000}k links ...\n')
+                f.flush()
+            if self.all % 100000 == 0 :
+                show_times = []
+                for k, v in self.ttimes.items():
+                    if v > 16:
+                        show_times.append((k, v))
+
+                std_times = sorted(show_times, key=lambda x:x[1], reverse=True)
+                with open('/root/workspace/magnet-dht/dhtlist.txt', 'a') as f:
+                    for x in std_times:
+                        f.write(f'magnet:?xt=urn:btih:{x[0]}\n{x[1]}\n')
+                    f.write(f'total filter : {len(std_times)} links \n')
+                    f.write(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time())))
+                    f.flush()
+
+                
+                self.ttimes.clear()
+
+    
+
+        
 
     def get_magnets(self, count=128):
-        """
-        返回指定数量的磁力链接
-        """
-        return self.redis.srandmember(REDIS_KEY, count)
+        pass
+
+if __name__ == "__main__":
+    c = RedisClient()
+    for i in range(1,100001):
+        c.add_magnet(str(random.randrange(1,64)))
+    # print(c.ttimes)
